@@ -1,0 +1,89 @@
+digraph EvaluationFramework {
+    rankdir=TB;
+    splines=ortho;
+    node [shape=box, style="rounded"];
+
+    /* Top */
+    Input [label="Input Sentences"];
+
+    /* Category Level */
+    { rank=same;
+      Accuracy;
+      Fluency;
+      Terminology;
+      Style;
+    }
+
+    Input -> {Accuracy Fluency Terminology Style};
+
+    /* -------- Accuracy -------- */
+    subgraph cluster_accuracy {
+        label="Accuracy Errors";
+        style=dashed;
+
+        Addition;
+        Omission;
+        Mistranslation;
+        UntranslatedText [label="Untranslated Text"];
+
+        Accuracy -> {Addition Omission Mistranslation UntranslatedText};
+    }
+
+    /* -------- Fluency -------- */
+    subgraph cluster_fluency {
+        label="Fluency Errors";
+        style=dashed;
+
+        Punctuation;
+        Spelling;
+        Grammar;
+        Register;
+        Inconsistency;
+        CharacterEncoding [label="Character Encoding"];
+
+        Fluency -> {Punctuation Spelling Grammar Register Inconsistency CharacterEncoding};
+    }
+
+    /* -------- Terminology -------- */
+    subgraph cluster_terminology {
+        label="Terminology Errors";
+        style=dashed;
+
+        InappropriateContext [label="Inappropriate for Context"];
+        InconsistentUse [label="Inconsistent Use"];
+
+        Terminology -> {InappropriateContext InconsistentUse};
+    }
+
+    /* -------- Style -------- */
+    subgraph cluster_style {
+        label="Style Errors";
+        style=dashed;
+
+        Awkward;
+        Style -> Awkward;
+    }
+
+    /* Stage 3 */
+    { rank=same;
+      VerifyAccuracy [label="Stage 3: Verifying"];
+      VerifyFluency  [label="Stage 3: Verifying"];
+      VerifyTerminology [label="Stage 3: Verifying"];
+      VerifyStyle [label="Stage 3: Verifying"];
+    }
+
+    {Addition Omission Mistranslation UntranslatedText} -> VerifyAccuracy;
+    {Punctuation Spelling Grammar Register Inconsistency CharacterEncoding} -> VerifyFluency;
+    {InappropriateContext InconsistentUse} -> VerifyTerminology;
+    Awkward -> VerifyStyle;
+
+    /* Stage 3 -> Check */
+    CheckMissing [label="Checking for Missing Errors", shape=diamond];
+    FinalAggregation [label="Stage 4: Final Aggregation"];
+
+    {VerifyAccuracy VerifyFluency VerifyTerminology VerifyStyle} -> CheckMissing;
+
+    /* Feedback loop */
+    CheckMissing -> Input [xlabel="Yes", constraint=false];
+    CheckMissing -> FinalAggregation [xlabel="No"];
+}

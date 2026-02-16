@@ -3,3 +3,26 @@ Fix the ordering bias caused in omission.
 Improve the system prompts of the agents.
 
 add more agents for each errors.
+
+
+# Improving HiMATE paper
+
+* Stage 4 feels redundant
+- I dont know how much improvement in output the stage 4 leads to
+- Can improve this to something more "debatey"
+
+* Give LLMs grammer, language, linguistic rules
+
+* optimize the cost
+- the HiMATE agentic framework generates around 60 requests per sentence
+- maybe we can optimize this to work with less requests
+
+
+* We can instead of just pointing out the error exists or not, also point out in which tokens the error exists
+
+* the HiMATE framework, logs the output of each agent in each stage in every step
+- maybe we can build something on this for a improved logging
+
+* i feel stage 2 and 3 are redundant and we can work on something better
+- it increases the computation a lot and generates a lot more requests but doesnt generate any useful information.
+- they use the same agent (and LLM) to generate the correct translation and then validate its own translation which is pretty weird.

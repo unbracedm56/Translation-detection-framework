@@ -1,0 +1,70 @@
+Framework Idea
+
+This idea is what would humans do.... How we break down a problem in our minds and solve it. Using statistics concepts.
+
+
+Stage 1:
+- Error evaluation using agents for each category (this is the super category as specified in MQM not our category)
+- These agents will be given proper definition, some examples and access to a database containing linguistic and grammer rules that can be accessed if necessary.
+- Output:
+    * probability:
+    * confidence:
+    * reason:
+
+
+
+Stage 2:
+- Error evaluation using agents for each sub category (this is similar to our existing categories)
+- Only the sub categories of the category that spiked and an error will be activated
+- This stage is used to mimic cross validation on a more precise level.
+- Output:
+    * re evaluated probability:
+    * thoughts: (what are you thinking based on stage 1)
+    * reason: (why are you thinking that....)
+    * re evaluated confidence: 
+
+
+
+Stage 3:
+- Acts as an evaluator, it only verify/ audits/ checks based on earlier stages it. It doesnt behave like a usual LLM like in the previous cases.
+- Using the evaluations given from stage 1 and 2 go through the sentence and search for this errors and comment on whether they exists.
+- Calculate and generate a consistency score to check whether the stage 1 and stage 2 align with each other or not.
+- Find whether any error category was missed or not (either from stage 1 or 2).
+- Output:
+    * consistency score:
+    * errors exists?:
+    * missing errors?:
+    * thoughts/reason:
+
+
+
+Stage 4:
+- this is the final stage, where the results of all other stages are combined together.
+- We can use a mathematical, evidence based scoring for the final output.
+
+
+[Opitional] Stage 5:
+- Find where the error is.
+- Also tell what should have been.
+
+
+The responses of the agents are logged or documented every step of the way (just like the himate paper).
+
+Categories
+- Accuracy
+    - Addition
+    - Omission
+    - Mistranslation
+    - Untranslated text
+- Fluency
+    - Punctuation
+    - Spelling
+    - grammar
+    - Register
+    - Inconsistency
+    - Character Encoding
+- Terminology
+    - Inappropriate for context
+    - Inconsistent use
+- Style
+    - Awkward

@@ -1,11 +1,14 @@
 from langgraph.graph import StateGraph, END
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from typing import TypedDict, Dict, List, Optional, Literal, Annotated, Any
 from pydantic import BaseModel, Field
 from prompts import OMISSION_PROMPT, WORD_RPLC_PROMPT, WORD_ORDR_PROMPT, WORD_SYNM_PROMPT, FLUENT_PROMPT, MIXD_LANG_PROMPT
 from dotenv import load_dotenv
+import os
 load_dotenv()
+
 
 def merge_dicts(left: dict, right: dict) -> dict:
     merged = dict(left or {})
@@ -36,7 +39,8 @@ class MTState(TypedDict):
 
     final_output: Optional[List]
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+# llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 def make_error_agent(system_prompt: str, state_key: str):
     prompt_template = ChatPromptTemplate.from_messages([
