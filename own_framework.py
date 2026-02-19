@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, END
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from typing import TypedDict, Dict, List, Optional, Literal, Annotated, Any
 from own_framework_prompts import *
@@ -21,8 +21,16 @@ class AgentOutputStage2(BaseModel):
 
 class AgentOutputStage3(BaseModel):
     consistencyScore: float = Field(..., description="Based on the evaluations of the previous agents, generate a score out of 100 on how consistent the agents are with each other.")
-    errorsExists: str = Field(..., description="Based on the evaluations of the previous agents i want you to verify whether these errors exists or not. Dont re evaluate. You have to search whether the error flagged by the previous agents exists or not. If it exists then return 'YES' otherwise return 'NO' and mention which errors for both")
+    errorsExists: Literal["NO", "YES"] = Field(..., description="Based on the evaluations of the previous agents i want you to verify whether these errors exists or not. Dont re evaluate. You have to search whether the error flagged by the previous agents exists or not. If it exists then return 'YES' otherwise return 'NO'")
     existanceReasoning: str = Field(..., description="Give brief explanation on your verification of the existance of the errors.")
+
+class AggregationOutput(TypedDict):
+    accuracy_error: float
+    fluency_error: float
+    terminology_error: float
+    style_error: float
+    overall_error_probability: float
+    final_quality_score_100: float
 
 class MTState(TypedDict):
     source: str
@@ -52,6 +60,8 @@ class MTState(TypedDict):
     fluencyStage3: Optional[AgentOutputStage3]
     terminologyStage3: Optional[AgentOutputStage3]
     styleStage3: Optional[AgentOutputStage3]
+
+    aggregation: Optional[AggregationOutput]
 
 
 llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
@@ -172,69 +182,3 @@ accuracy_stage3_agent = make_error_agent_stage3(ACCURACY_STAGE3_PROMPT, "accurac
 fluency_stage3_agent = make_error_agent_stage3(FLUENCY_STAGE3_PROMPT, "fluencyStage3", "fluencyStage1")
 terminology_stage3_agent = make_error_agent_stage3(TERMINOLOGY_STAGE3_PROMPT, "terminologyStage3", "terminologyStage1")
 style_stage3_agent = make_error_agent_stage3(STYLE_STAGE3_PROMPT, "styleStage3", "styleStage1")
-
-graph = StateGraph(MTState)
-
-graph.add_node("START")
-graph.add_node("accuracyStage1", accuracy_agent)
-graph.add_node("fluencyStage1", fluency_agent)
-graph.add_node("terminologyStage1", terminology_agent)
-graph.add_node("styleStage1", style_agent)
-graph.add_node("addition", addition_agent)
-graph.add_node("omission", omission_agent)
-graph.add_node("mistranslation", mistranslation_agent)
-graph.add_node("untranslated_text", untranslated_text_agent)
-graph.add_node("punctuation", punctuation_agent)
-graph.add_node("spelling", spelling_agent)
-graph.add_node("grammar", grammar_agent)
-graph.add_node("register", register_agent)
-graph.add_node("inconsistency", inconsistency_agent)
-graph.add_node("characterEncoding", characterEncoding_agent)
-graph.add_node("inappropriate_for_context", inappropriate_for_context_agent)
-graph.add_node("inconsistency_use", inconsistency_use_agent)
-graph.add_node("awkward", awkward_agent)
-graph.add_node("accuracyStage3", accuracy_stage3_agent)
-graph.add_node("fluencyStage3", fluency_stage3_agent)
-graph.add_node("terminologyStage3", terminology_stage3_agent)
-graph.add_node("styleStage3", style_stage3_agent)
-
-graph.set_entry_point("START")
-
-graph.add_edge("START", "accuracyStage1")
-graph.add_edge("START", "fluencyStage1")
-graph.add_edge("START", "terminologyStage1")
-graph.add_edge("START", "styleStage1")
-
-graph.add_edge("accuracyStage1", "addition")
-graph.add_edge("accuracyStage1", "omission")
-graph.add_edge("accuracyStage1", "mistranslation")
-graph.add_edge("accuracyStage1", "untranslated_text")
-
-graph.add_edge("fluencyStage1", "punctuation")
-graph.add_edge("fluencyStage1", "spelling")
-graph.add_edge("fluencyStage1", "grammar")
-graph.add_edge("fluencyStage1", "register")
-graph.add_edge("fluencyStage1", "inconsistency")
-graph.add_edge("fluencyStage1", "characterEncoding")
-
-graph.add_edge("terminologyStage1", "inappropriate_for_context")
-graph.add_edge("terminologyStage1", "inconsistency_use")
-
-graph.add_edge("styleStage1", "awkward")
-
-graph.add_edge("addition", "accuracyStage3")
-graph.add_edge("omission", "accuracyStage3")
-graph.add_edge("mistranslation", "accuracyStage3")
-graph.add_edge("untranslated_text", "accuracyStage3")
-
-graph.add_edge("punctuation", "fluencyStage3")
-graph.add_edge("spelling", "fluencyStage3")
-graph.add_edge("grammar", "fluencyStage3")
-graph.add_edge("register", "fluencyStage3")
-graph.add_edge("inconsistency", "fluencyStage3")
-graph.add_edge("characterEncoding", "fluencyStage3")
-
-graph.add_edge("inappropriate_for_context", "terminologyStage3")
-graph.add_edge("inconsistency_use", "terminologyStage3")
-
-graph.add_edge("awkward", "styleStage3")
