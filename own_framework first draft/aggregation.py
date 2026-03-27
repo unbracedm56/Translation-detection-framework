@@ -61,10 +61,13 @@ def aggregate_mt_quality(state: MTState) -> Dict[str, AggregationOutput]:
         weights["style"] * style_score
     )
 
+    final_quality_score_100 = (1 - overall_error_prob) * 100
+
     return {"aggregation": {
         "accuracy_error": acc_score,
         "fluency_error": flu_score,
         "terminology_error": term_score,
         "style_error": style_score,
-        "overall_error_probability": overall_error_prob
+        "overall_error_probability": overall_error_prob,
+        "final_quality_score_100": final_quality_score_100
     }}
