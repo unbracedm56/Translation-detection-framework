@@ -3,10 +3,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.txt
-*.csv
-*.zip
-*.json
 
 # Virtual Environments
 venv/
