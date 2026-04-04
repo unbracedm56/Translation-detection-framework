@@ -1,4 +1,19 @@
-# Compact prompt set for faster MT evaluation while preserving core constraints.
+_CALIBRATION_GUIDE = """
+Probability Calibration Guide:
+  0.00-0.15  → Very unlikely; no concrete evidence found.
+  0.15-0.40  → Possible; weak or ambiguous signal.
+  0.40-0.65  → Likely; moderate evidence, some uncertainty.
+  0.65-0.85  → Highly likely; strong evidence.
+  0.85-1.00  → Near-certain; direct unambiguous evidence.
+Reserve 0.95+ for cases where you could quote the exact offending span.
+"""
+
+_CONSERVATIVE_RULE = """
+Conservative Evaluation Rule:
+When in doubt, prefer under-reporting over over-reporting.
+A false positive (flagging a non-error) is worse than a false negative here
+because downstream agents will independently flag genuine errors.
+"""
 
 SPAN_RULES = """
 Span rules:
@@ -10,14 +25,11 @@ Span rules:
 - If no clear error span exists, use null span fields.
 """
 
-STAGE2_SHARED = """
+STAGE2_SHARED = f"""
 You are a careful MT evaluator for ONE subtype.
 
-Input:
-- source
-- mt
-- reference
-- previous_agent
+{_CALIBRATION_GUIDE}
+{_CONSERVATIVE_RULE}
 
 Rules:
 - Evaluate ONLY the assigned subtype.
@@ -29,12 +41,10 @@ Rules:
 - Briefly say whether Stage-1 is supported.
 """
 
-STAGE3_SHARED = """
+STAGE3_SHARED = f"""
 You are a senior verifier.
 
-Input:
-- one Stage-1 output
-- all subtype outputs for that super-category
+{_CONSERVATIVE_RULE}
 
 Rules:
 - Do NOT re-evaluate from scratch.
@@ -45,16 +55,13 @@ Rules:
 Return YES if at least one supported error exists, else NO.
 """
 
-ACCURACY_PROMPT = """
+ACCURACY_PROMPT = f"""
 You are an MT accuracy evaluator.
 
 Task: judge whether MT has ACCURACY errors versus source and reference.
 
-Includes:
-- omission
-- addition
-- mistranslation
-- unjustified untranslated text
+Definition: Accuracy errors occur when the MT fails to faithfully convey the meaning of the source.
+This includes: added content, omitted content, wrong meaning, untranslated words.
 
 Rules:
 - Focus only on meaning transfer.
@@ -62,63 +69,69 @@ Rules:
 - Low probability if meaning is preserved.
 - High probability if meaning is missing, extra, distorted, or left untranslated without justification.
 - Justify using concrete words or phrases.
+
+{_CALIBRATION_GUIDE}
+{_CONSERVATIVE_RULE}
 """
 
-FLUENCY_PROMPT = """
+FLUENCY_PROMPT = f"""
 You are an MT fluency evaluator.
 
 Task: judge whether MT has FLUENCY errors in the target language.
 
-Includes:
-- grammar
-- spelling
-- punctuation
-- register
-- character encoding
+Definition: Fluency errors occur when the MT violates well-formedness of the TARGET language.
+This includes: grammar mistakes, spelling errors, wrong punctuation, register mismatch,
+awkward syntax, word-order issues, morphological errors, encoding artifacts.
 
 Rules:
 - Focus only on linguistic well-formedness.
 - Ignore semantic accuracy.
 - Judge whether a native speaker would find it natural and well-formed.
 - Justify briefly with concrete evidence.
+
+{_CALIBRATION_GUIDE}
+{_CONSERVATIVE_RULE}
 """
 
-TERMINOLOGY_PROMPT = """
+TERMINOLOGY_PROMPT = f"""
 You are an MT terminology evaluator.
 
 Task: judge whether MT has TERMINOLOGY errors.
 
-Includes:
-- wrong domain term
-- inconsistent term use
-- context-inappropriate term choice
+Definition: Terminology errors occur when domain-specific, technical, or specialised terms are
+translated incorrectly, inconsistently, or in a way that is inappropriate for the domain context.
 
 Rules:
 - Focus only on term usage.
 - Ignore general grammar and style.
 - If technical/domain terms are appropriate and consistent, probability should be low.
 - Justify with exact terms.
+
+{_CALIBRATION_GUIDE}
+{_CONSERVATIVE_RULE}
 """
 
-STYLE_PROMPT = """
+STYLE_PROMPT = f"""
 You are an MT style evaluator.
 
 Task: judge whether MT has STYLE errors.
 
-Includes:
-- awkward phrasing
-- tone inconsistency
-- inappropriate stylistic choice for context
+Definition: Style errors occur when the MT is grammatically correct and semantically accurate,
+but the phrasing is awkward, unnatural, overly literal, or deviates from the expected register/voice.
 
 Rules:
 - Focus on phrasing, tone, and stylistic fit.
 - Do not judge meaning or grammar unless they directly affect style.
 - Justify with specific phrases.
+
+{_CALIBRATION_GUIDE}
+{_CONSERVATIVE_RULE}
 """
 
 ADDITION_PROMPT = STAGE2_SHARED + """
 Subtype: ADDITION
-Definition: MT introduces meaning not present in source.
+Definition: An addition error occurs when the MT introduces content that has NO basis in the source.
+The added content changes or expands the meaning beyond what the source conveys.
 
 Important:
 - Paraphrase is not addition.
@@ -128,7 +141,7 @@ Important:
 
 OMISSION_PROMPT = STAGE2_SHARED + """
 Subtype: OMISSION
-Definition: Meaning present in source is missing in MT.
+Definition: An omission error occurs when content that is present and semantically significant in the SOURCE is missing from the MT.
 
 Important:
 - Implicit preservation can still be acceptable.
@@ -138,7 +151,8 @@ Important:
 
 MISTRANSLATION_PROMPT = STAGE2_SHARED + """
 Subtype: MISTRANSLATION
-Definition: Source meaning is transferred incorrectly or distorted.
+Definition: A mistranslation occurs when the MT incorrectly renders the meaning of a source word/phrase,
+  resulting in wrong semantic content in the target (even if both source and MT tokens are present).
 
 Important:
 - Lexical variation alone is not mistranslation.
@@ -148,7 +162,8 @@ Important:
 
 UNTRANSLATED_TEXT_PROMPT = STAGE2_SHARED + """
 Subtype: UNTRANSLATED_TEXT
-Definition: Source-language words remain in MT without justification.
+Definition: An untranslated text error occurs when a source-language word or phrase appears verbatim in the MT
+  where a translation is expected and feasible.
 
 Important:
 - Proper names may be acceptable.
@@ -178,7 +193,9 @@ Important:
 
 PUNCTUATION_PROMPT = STAGE2_SHARED + """
 Subtype: PUNCTUATION
-Definition: Incorrect, missing, or misplaced punctuation.
+Definition: Punctuation errors occur when the TARGET language's punctuation norms are violated.
+  This includes: missing/extra commas, wrong quotation marks, incorrect sentence-final punctuation,
+  inappropriate ellipsis, or misplaced colon/semicolon.
 
 Important:
 - Ignore grammar/style unless directly tied to punctuation.
@@ -186,7 +203,8 @@ Important:
 
 SPELLING_PROMPT = STAGE2_SHARED + """
 Subtype: SPELLING
-Definition: Orthographic mistakes in the target language.
+Definition: Spelling errors are typographical or orthographic mistakes in the TARGET language,
+  including: misspelled words, wrong diacritics, run-together or split words.
 
 Important:
 - Ignore grammar and punctuation.
@@ -195,7 +213,9 @@ Important:
 
 GRAMMAR_PROMPT = STAGE2_SHARED + """
 Subtype: GRAMMAR
-Definition: Errors in agreement, tense, word order, syntax, or sentence structure.
+Definition: Grammar errors are violations of the morphosyntactic rules of the TARGET language.
+  This includes: wrong verb agreement, incorrect case/gender, wrong tense, missing articles,
+  incorrect prepositions required by grammar rules.
 
 Important:
 - Do not assess semantic accuracy.
@@ -205,7 +225,8 @@ Important:
 
 REGISTER_PROMPT = STAGE2_SHARED + """
 Subtype: REGISTER
-Definition: Tone or formality does not match the source/context.
+Definition: Register errors occur when the TARGET-language register (formal/informal, polite/casual,
+  technical/lay) is inconsistent with the SOURCE or with expectations of the domain.
 
 Important:
 - Minor stylistic variation is not enough.
@@ -249,7 +270,8 @@ Important:
 
 AWKWARD_PROMPT = STAGE2_SHARED + """
 Subtype: AWKWARD
-Definition: MT phrasing is unnatural or stylistically awkward for the target language.
+Definition: Awkward phrasing occurs when a phrase or clause is grammatically correct and semantically
+  accurate but sounds unnatural, overly literal, or foreign to a native speaker of the target language.
 
 Important:
 - Focus on phrasing and stylistic naturalness.
